@@ -1,0 +1,16 @@
+# config.yaml
+
+# Map logical motor names to MotorKit stepper channels (1–4)
+motors:
+  x_left:   1
+  x_right:  2
+  z_axis:   3
+
+# How many microsteps equals 1 mm of travel on each axis
+calibration:
+  steps_per_mm_x: 80    # e.g. 80 microsteps per mm on the X rails
+  steps_per_mm_z: 100   # e.g. 100 microsteps per mm on the Z lead screw
+
+# Stepping style and pause between each microstep
+step_style: "MICROSTEP"  # or "DOUBLE", "SINGLE", etc., per adafruit_motor.stepper
+step_delay: 0.01         # seconds to wait between microsteps
