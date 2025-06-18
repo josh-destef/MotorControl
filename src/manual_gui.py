@@ -3,8 +3,8 @@
 manual_gui.py
 
 GUI control panel for AeroVision stepper rig.
-Allows manual jogging of X and Z axes, emergency stop, home (aesthetic),
-loading of CSV waypoint files, and dynamic step-size selection.
+Allows manual jogging of X and Z axes, emergency stop that immediately releases motors,
+home (aesthetic), loading of CSV waypoint files, and dynamic step-size selection.
 """
 import tkinter as tk
 from tkinter import filedialog, messagebox
@@ -19,6 +19,7 @@ class ManualControlApp(tk.Tk):
         self.title("AeroVision Manual Control")
         self.mc = MotorController()
         self.csv_path = None
+        self.estopped = False
         # Variable for dynamic step size
         self.step_size = tk.DoubleVar(value=1.0)
         self._create_widgets()
@@ -93,6 +94,8 @@ class ManualControlApp(tk.Tk):
         self.lbl_csv.grid(row=1, column=0, columnspan=3, pady=(5,0), sticky="we")
 
     def _move_x(self, distance):
+        if self.estopped:
+            return
         try:
             self.mc.move_x(distance)
             self._update_position()
@@ -100,6 +103,8 @@ class ManualControlApp(tk.Tk):
             messagebox.showerror("Error", f"X axis move failed: {e}")
 
     def _move_z(self, distance):
+        if self.estopped:
+            return
         try:
             self.mc.move_z(distance)
             self._update_position()
@@ -113,19 +118,31 @@ class ManualControlApp(tk.Tk):
         self.lbl_z.config(text=f"Z = {z:.2f} mm")
 
     def _home(self):
+        if self.estopped:
+            return
         # Aesthetic only: reset displayed position
         self.mc.position = {'x': 0.0, 'z': 0.0}
         self._update_position()
         messagebox.showinfo("Home", "Position reset to (0,0)")
 
     def _emergency_stop(self):
-        # Disable all buttons
+        # Immediately release all motors
+        try:
+            for stepper in self.mc.steppers.values():
+                if stepper:
+                    stepper.release()
+        except Exception:
+            pass
+        # Disable further controls
+        self.estopped = True
         for child in self.winfo_children():
             if isinstance(child, tk.Button) or isinstance(child, tk.Spinbox):
                 child.config(state=tk.DISABLED)
-        messagebox.showwarning("EMERGENCY STOP", "All controls disabled!")
+        messagebox.showwarning("EMERGENCY STOP", "All controls disabled and motors released!")
 
     def _load_csv(self):
+        if self.estopped:
+            return
         path = filedialog.askopenfilename(
             title="Select CSV file", filetypes=[("CSV Files", "*.csv")]
         )
